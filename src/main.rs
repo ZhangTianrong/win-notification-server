@@ -376,38 +376,18 @@ impl NotificationManager {
             Ok(())
         }))?;
 
-        let tag_clone = tag.clone();
-        let notifications = Arc::clone(&self.notifications);
         let _token = notification.Dismissed(&TypedEventHandler::<ToastNotification, ToastDismissedEventArgs>::new(move |_: &Option<ToastNotification>, args: &Option<ToastDismissedEventArgs>| {
             if let Some(args) = args {
                 if let Ok(reason) = args.Reason() {
                     match reason {
                         ToastDismissalReason::UserCanceled => {
-                            log::info!("Notification dismissed from action center (UserCanceled)");
-                            let tag = tag_clone.clone();
-                            
-                            if let Ok(notifications_guard) = notifications.lock() {
-                                if let Some(data) = notifications_guard.get(&tag) {
-                                    if let Some(cmd) = &data.callback_command {
-                                        log::info!("Executing callback command for action center dismissal: {}", cmd);
-                                        if let Err(e) = std::process::Command::new("cmd")
-                                            .args(&["/C", cmd])
-                                            .spawn() {
-                                            log::error!("Failed to execute dismiss callback: {}", e);
-                                        }
-                                    } else {
-                                        if let Err(e) = NotificationManager::set_clipboard_text(&data.message) {
-                                            log::error!("Failed to copy text to clipboard: {}", e);
-                                        }
-                                    }
-                                }
-                            }
+                            log::info!("Notification dismissed by user - no action taken");
                         },
                         ToastDismissalReason::TimedOut => {
-                            log::info!("Notification timed out (TimedOut)");
+                            log::info!("Notification timed out");
                         },
                         ToastDismissalReason::ApplicationHidden => {
-                            log::info!("Notification hidden by application (ApplicationHidden)");
+                            log::info!("Notification hidden by application");
                         },
                         _ => {
                             log::info!("Notification dismissed with unknown reason: {:?}", reason);
@@ -489,7 +469,7 @@ async fn main() -> Result<()> {
             .route("/notify", web::post().to(send_notification))
     })
     .bind("127.0.0.1:3000")?
-    .workers(4) // Reduced from 16 to 4 workers
+    .workers(4)
     .run()
     .await?;
 
