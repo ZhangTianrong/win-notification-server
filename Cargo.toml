@@ -26,7 +26,9 @@ windows = { version = "0.48", features = [
     "ApplicationModel_Activation",
     "ApplicationModel",
     "System_UserProfile",
-    "UI_StartScreen"
+    "UI_StartScreen",
+    "Win32_System_DataExchange",
+    "Win32_System_Memory"
 ] }
 actix-web = "4.3"
 quick-xml = { version = "0.30", features = ["serialize"] }
@@ -37,3 +39,4 @@ anyhow = "1.0"
 base64 = "0.21"
 log = "0.4"
 env_logger = "0.10"
+uuid = { version = "1.4", features = ["v4"] }
