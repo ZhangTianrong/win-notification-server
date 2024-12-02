@@ -1,0 +1,39 @@
+[package]
+name = "notification_server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+windows = { version = "0.48", features = [
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_Foundation",
+    "Win32_System_Registry",
+    "Win32_UI_Shell",
+    "Win32_System_Com",
+    "Win32_System_Ole",
+    "Data_Xml_Dom",
+    "UI_Notifications",
+    "Foundation",
+    "Foundation_Collections",
+    "System_Threading",
+    "Foundation_Metadata",
+    "UI_Notifications_Management",
+    "ApplicationModel_Background",
+    "System",
+    "implement",
+    "UI_Shell",
+    "Storage",
+    "ApplicationModel_Activation",
+    "ApplicationModel",
+    "System_UserProfile",
+    "UI_StartScreen"
+] }
+actix-web = "4.3"
+quick-xml = { version = "0.30", features = ["serialize"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.28", features = ["full"] }
+anyhow = "1.0"
+base64 = "0.21"
+log = "0.4"
+env_logger = "0.10"
