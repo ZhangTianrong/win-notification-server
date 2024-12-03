@@ -5,7 +5,6 @@ use windows::{
     core::*,
     Win32::System::Com::*,
     UI::Notifications::*,
-    Data::Xml::Dom::*,
     Foundation::TypedEventHandler,
 };
 use std::path::Path;

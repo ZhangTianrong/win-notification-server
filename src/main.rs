@@ -29,7 +29,7 @@ async fn main() -> Result<()> {
             .app_data(web::Data::new(manager.clone()))
             .route("/notify", web::post().to(handlers::send_notification))
     })
-    .bind("127.0.0.1:3000")?
+    .bind("0.0.0.0:3000")?
     .workers(4)
     .run()
     .await?;
