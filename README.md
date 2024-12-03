@@ -1,15 +1,17 @@
 # Windows 11 Notification Server
 
-A Rust-based REST API server that enables sending Windows 11 notifications programmatically. Supports both simple text/image notifications and complex XML-based notifications with custom actions and callbacks.
+A Rust-based REST API server that enables sending Windows 11 notifications programmatically. Supports text notifications with images, file attachments, and callback actions.
 
 ## Features
 
 - REST API for sending notifications
-- Support for simple text and image-based notifications
-- Support for complex XML-based notifications
+- Support for text notifications with images
+- Support for file attachments
 - Custom action callbacks
 - Command execution support
 - Automatic Windows notification registration
+- Configurable port and bind address
+- Basic authentication for non-localhost requests
 
 ## Setup
 
@@ -21,103 +23,110 @@ cargo build --release
 cargo run --release
 ```
 
-The server will start on `http://localhost:3000`.
+By default, the server will start on `http://localhost:3000`.
+
+### Command Line Arguments
+
+The server supports the following command line arguments:
+
+```bash
+USAGE:
+    notification_server [OPTIONS]
+
+OPTIONS:
+    -p, --port <PORT>         Port to listen on [default: 3000]
+    -b, --bind <ADDRESS>      Bind address [default: 0.0.0.0]
+    -u, --username <USER>     Username for basic authentication
+    -w, --password <PASS>     Password for basic authentication
+    -h, --help               Print help information
+    -V, --version            Print version information
+```
+
+Example with custom port and authentication:
+```bash
+cargo run --release -- --port 8080 --bind 127.0.0.1 --username admin --password secret
+```
+
+## Security
+
+- By default, only localhost requests are allowed without authentication
+- For non-localhost requests, basic authentication can be enabled using the --username and --password flags
+- If authentication credentials are not provided, only localhost requests will be accepted
+- Both username and password must be provided to enable authentication
+- HTTPS is recommended for production use when accepting non-localhost requests
 
 ## API Endpoints
 
 ### POST /notify
 
-Send a notification with the following JSON body:
+Send a notification using multipart form data with the following fields:
 
-```json
-{
-    "title": "Notification Title",
-    "message": "Notification Message",
-    "image_data": "Optional base64 encoded image",
-    "xml_payload": "Optional custom XML payload",
-    "callback_command": "Optional command to execute on activation"
-}
-```
+- `title`: The notification title (required)
+- `message`: The notification message (required)
+- `image`: An image file to display in the notification (optional)
+- `files`: One or more file attachments (optional, can be specified multiple times)
+- `callback_command`: Command to execute when the notification is clicked (optional)
 
-#### Simple Notification Example
+#### Basic Notification Example (localhost)
 
 ```bash
 curl -X POST http://localhost:3000/notify \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Hello",
-    "message": "This is a test notification"
-  }'
+  -F "title=Hello" \
+  -F "message=This is a test notification"
+```
+
+#### Example with Authentication (non-localhost)
+
+```bash
+curl -X POST http://example.com:3000/notify \
+  -u "username:password" \
+  -F "title=Hello" \
+  -F "message=This is a test notification"
 ```
 
 #### Image Notification Example
 
 ```bash
 curl -X POST http://localhost:3000/notify \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Image Notification",
-    "message": "This notification includes an image",
-    "image_data": "<base64-encoded-image-data>"
-  }'
+  -F "title=Image Notification" \
+  -F "message=This notification includes an image" \
+  -F "image=@/path/to/image.jpg"
 ```
 
-#### Custom XML Notification Example
+#### Notification with File Attachments
 
 ```bash
 curl -X POST http://localhost:3000/notify \
-  -H "Content-Type: application/json" \
-  -d '{
-    "xml_payload": "<toast><visual><binding template=\"ToastGeneric\"><text>Custom XML Title</text><text>Custom XML message with actions</text></binding></visual><actions><action content=\"Click Me\" arguments=\"custom-action\"/></actions></toast>"
-  }'
+  -F "title=File Notification" \
+  -F "message=This notification includes files" \
+  -F "files=@/path/to/file1.txt" \
+  -F "files=@/path/to/file2.txt"
 ```
 
 #### Notification with Command Callback
 
 ```bash
 curl -X POST http://localhost:3000/notify \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Command Notification",
-    "message": "Click to execute command",
-    "callback_command": "echo Hello from notification!"
-  }'
+  -F "title=Command Notification" \
+  -F "message=Click to execute command" \
+  -F "callback_command=explorer \"https://example.com\""
 ```
-
-## XML Notification Schema
-
-The server supports the full Windows 11 toast notification schema. Some examples of supported elements:
-
-```xml
-<toast>
-    <visual>
-        <binding template="ToastGeneric">
-            <text>Title</text>
-            <text>Message</text>
-            <image placement="appLogoOverride" src="image-url"/>
-        </binding>
-    </visual>
-    <actions>
-        <action content="Button Text" arguments="action-argument"/>
-    </actions>
-    <audio src="ms-winsoundevent:Notification.Default"/>
-</toast>
-```
-
-For more details on the toast schema, refer to the [Microsoft Toast Content Schema documentation](https://learn.microsoft.com/en-us/windows/apps/design/shell/tiles-and-notifications/toast-schema).
 
 ## Error Handling
 
 The server returns appropriate HTTP status codes:
 
 - 200: Notification sent successfully
+- 401: Unauthorized (invalid or missing authentication credentials)
 - 500: Internal server error with error message in response body
 
 ## Security Considerations
 
-- The server runs locally and should not be exposed to the public internet
+- The server should be configured appropriately when exposed to non-localhost requests
+- Use strong authentication credentials when enabling non-localhost access
 - Callback commands are executed with the same privileges as the server process
-- Validate and sanitize all input, especially custom XML payloads and callback commands
+- Validate and sanitize all input, especially callback commands
+- Consider using HTTPS in production environments when accepting non-localhost requests
 
 ## Requirements
 
