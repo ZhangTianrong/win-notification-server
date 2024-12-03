@@ -4,7 +4,7 @@ use windows::{
     UI::Notifications::*,
     Data::Xml::Dom::*,
 };
-use std::env;
+use std::path::Path;
 use super::types::{NotificationType, NotificationData};
 
 pub struct BasicNotification {
@@ -30,14 +30,14 @@ impl NotificationType for BasicNotification {
         let tag = format!("notification_{}", uuid::Uuid::new_v4());
         
         let image_xml = if let Some(img_path) = &self.image_path {
-            let absolute_path = env::current_dir()?.join(img_path);
-            if !absolute_path.exists() {
-                log::error!("Image file not found: {}", absolute_path.display());
+            let path = Path::new(img_path);
+            if !path.exists() {
+                log::error!("Image file not found: {}", path.display());
                 return Err(anyhow::anyhow!("Image file not found"));
             }
 
             format!("<image placement=\"hero\" src=\"{}\" />", 
-                absolute_path.to_string_lossy())
+                path.to_string_lossy())
         } else {
             String::new()
         };

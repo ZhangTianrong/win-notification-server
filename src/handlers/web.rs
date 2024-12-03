@@ -7,9 +7,12 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::fs;
 use uuid::Uuid;
+use std::env;
 
 use crate::services::NotificationManager;
 use crate::notifications::NotificationRequest;
+
+const NOTIFICATION_ASSETS_DIR: &str = "notification_server_assets";
 
 pub async fn send_notification(
     manager: web::Data<Arc<Mutex<NotificationManager>>>,
@@ -22,9 +25,10 @@ pub async fn send_notification(
     let mut message = String::new();
     let mut image_path = None;
 
-    // Create temporary directory for this notification
+    // Create temporary directory for this notification in system temp dir
     let notification_id = Uuid::new_v4();
-    let temp_dir = PathBuf::from("notification_assets").join(notification_id.to_string());
+    let temp_base = env::temp_dir().join(NOTIFICATION_ASSETS_DIR);
+    let temp_dir = temp_base.join(notification_id.to_string());
     match fs::create_dir_all(&temp_dir) {
         Ok(_) => (),
         Err(e) => {
