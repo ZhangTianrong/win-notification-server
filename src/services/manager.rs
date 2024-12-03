@@ -10,7 +10,7 @@ use windows::{
 };
 use std::path::Path;
 
-use crate::notifications::{NotificationRequest, NotificationData, NotificationType, BasicNotification};
+use crate::notifications::{NotificationRequest, NotificationData, NotificationType, BasicNotification, NotificationKind};
 use super::registry::RegistryService;
 use super::clipboard::ClipboardService;
 
@@ -65,11 +65,12 @@ impl NotificationManager {
             return Err(anyhow::anyhow!("Notification system not properly registered"));
         }
 
-        if let Some(xml) = request.xml_payload.clone() {
-            self.send_xml_notification(&xml, request.callback_command.clone(), request.message.clone(), request.image_path.clone(), request.file_paths.clone()).await?;
-        } else {
-            let notification = BasicNotification::from(request);
-            self.send_typed_notification(&notification).await?;
+        match request.notification_type {
+            NotificationKind::Basic => {
+                let notification = BasicNotification::from(request);
+                self.send_typed_notification(&notification).await?;
+            }
+            // Add future notification types here
         }
         
         Ok(())
@@ -89,40 +90,10 @@ impl NotificationManager {
         if let Some(notifier) = &self.notifier {
             notifier.Show(&toast)?;
             log::info!("Notification sent successfully");
+            Ok(())
         } else {
-            return Err(anyhow::anyhow!("Toast notifier not initialized"));
+            Err(anyhow::anyhow!("Toast notifier not initialized"))
         }
-
-        Ok(())
-    }
-
-    async fn send_xml_notification(&mut self, xml: &str, callback: Option<String>, message: String, image_path: Option<String>, file_paths: Option<Vec<String>>) -> Result<()> {
-        let xml_doc = XmlDocument::new()?;
-        let xml_string: HSTRING = xml.into();
-        xml_doc.LoadXml(&xml_string)?;
-
-        let notification = ToastNotification::CreateToastNotification(&xml_doc)?;
-        let tag = format!("notification_{}", uuid::Uuid::new_v4());
-        notification.SetTag(&HSTRING::from(tag.clone()))?;
-
-        let notification_data = NotificationData {
-            callback_command: callback,
-            message,
-            image_path,
-            file_paths,
-        };
-        
-        self.notifications.lock().unwrap().insert(tag.clone(), notification_data);
-        self.setup_notification_handlers(&notification, tag)?;
-
-        if let Some(notifier) = &self.notifier {
-            notifier.Show(&notification)?;
-            log::info!("Notification sent successfully");
-        } else {
-            return Err(anyhow::anyhow!("Toast notifier not initialized"));
-        }
-
-        Ok(())
     }
 
     fn setup_notification_handlers(&self, notification: &ToastNotification, tag: String) -> Result<()> {

@@ -1,5 +1,5 @@
-mod types;
 mod basic;
+mod types;
 
-pub use types::{NotificationRequest, NotificationData, NotificationType};
 pub use basic::BasicNotification;
+pub use types::{NotificationRequest, NotificationData, NotificationType, NotificationKind};

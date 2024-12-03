@@ -163,9 +163,9 @@ pub async fn send_notification(
     let request = NotificationRequest {
         title,
         message,
+        notification_type: Default::default(), // Uses the default Basic type
         image_path,
         file_paths: if file_paths.is_empty() { None } else { Some(file_paths) },
-        xml_payload: None,
         callback_command: None,
     };
 

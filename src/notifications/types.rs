@@ -3,11 +3,24 @@ use serde::{Deserialize, Serialize};
 use windows::UI::Notifications::ToastNotification;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "lowercase")]
+pub enum NotificationKind {
+    Basic,
+    // Future notification types can be added here
+}
+
+impl Default for NotificationKind {
+    fn default() -> Self {
+        NotificationKind::Basic
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NotificationRequest {
     pub title: String,
     pub message: String,
     #[serde(default)]
-    pub xml_payload: Option<String>,
+    pub notification_type: NotificationKind,
     #[serde(default)]
     pub image_path: Option<String>,
     #[serde(default)]
