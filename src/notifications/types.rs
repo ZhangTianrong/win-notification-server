@@ -9,7 +9,7 @@ pub struct NotificationRequest {
     #[serde(default)]
     pub xml_payload: Option<String>,
     #[serde(default)]
-    pub image_data: Option<String>,
+    pub image_path: Option<String>,
     #[serde(default)]
     pub callback_command: Option<String>,
 }

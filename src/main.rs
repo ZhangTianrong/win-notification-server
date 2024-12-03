@@ -12,7 +12,7 @@ use utils::constants::{APP_ID, APP_DISPLAY_NAME};
 
 #[actix_web::main]
 async fn main() -> Result<()> {
-    env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
+    env_logger::init_from_env(env_logger::Env::default().default_filter_or("debug"));
     
     log::info!("Initializing notification manager...");
     let manager = Arc::new(Mutex::new(
