@@ -11,6 +11,7 @@ pub struct BasicNotification {
     pub title: String,
     pub message: String,
     pub image_path: Option<String>,
+    pub file_paths: Option<Vec<String>>,
     pub callback_command: Option<String>,
 }
 
@@ -71,6 +72,8 @@ impl NotificationType for BasicNotification {
         NotificationData {
             callback_command: self.callback_command.clone(),
             message: self.message.clone(),
+            image_path: self.image_path.clone(),
+            file_paths: self.file_paths.clone(),
         }
     }
 }
@@ -81,6 +84,7 @@ impl From<super::types::NotificationRequest> for BasicNotification {
             title: request.title,
             message: request.message,
             image_path: request.image_path,
+            file_paths: request.file_paths,
             callback_command: request.callback_command,
         }
     }

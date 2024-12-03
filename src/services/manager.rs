@@ -8,6 +8,7 @@ use windows::{
     Data::Xml::Dom::*,
     Foundation::TypedEventHandler,
 };
+use std::path::Path;
 
 use crate::notifications::{NotificationRequest, NotificationData, NotificationType, BasicNotification};
 use super::registry::RegistryService;
@@ -65,7 +66,7 @@ impl NotificationManager {
         }
 
         if let Some(xml) = request.xml_payload.clone() {
-            self.send_xml_notification(&xml, request.callback_command.clone(), request.message.clone()).await?;
+            self.send_xml_notification(&xml, request.callback_command.clone(), request.message.clone(), request.image_path.clone(), request.file_paths.clone()).await?;
         } else {
             let notification = BasicNotification::from(request);
             self.send_typed_notification(&notification).await?;
@@ -95,7 +96,7 @@ impl NotificationManager {
         Ok(())
     }
 
-    async fn send_xml_notification(&mut self, xml: &str, callback: Option<String>, message: String) -> Result<()> {
+    async fn send_xml_notification(&mut self, xml: &str, callback: Option<String>, message: String, image_path: Option<String>, file_paths: Option<Vec<String>>) -> Result<()> {
         let xml_doc = XmlDocument::new()?;
         let xml_string: HSTRING = xml.into();
         xml_doc.LoadXml(&xml_string)?;
@@ -107,6 +108,8 @@ impl NotificationManager {
         let notification_data = NotificationData {
             callback_command: callback,
             message,
+            image_path,
+            file_paths,
         };
         
         self.notifications.lock().unwrap().insert(tag.clone(), notification_data);
@@ -132,6 +135,7 @@ impl NotificationManager {
             
             if let Ok(notifications_guard) = notifications.lock() {
                 if let Some(data) = notifications_guard.get(&tag) {
+                    // Handle callback command if present
                     if let Some(cmd) = &data.callback_command {
                         log::info!("Executing callback command for click: {}", cmd);
                         if let Err(e) = std::process::Command::new("cmd")
@@ -140,8 +144,34 @@ impl NotificationManager {
                             log::error!("Failed to execute click callback: {}", e);
                         }
                     } else {
+                        // Copy message to clipboard if no callback command
                         if let Err(e) = ClipboardService::set_text(&data.message) {
                             log::error!("Failed to copy text to clipboard: {}", e);
+                        }
+                    }
+
+                    // Determine which directory to open
+                    let directory_to_open = if let Some(image_path) = &data.image_path {
+                        // If there's an image, use its directory
+                        Path::new(image_path).parent().map(|p| p.to_path_buf())
+                    } else if let Some(file_paths) = &data.file_paths {
+                        if !file_paths.is_empty() {
+                            // If there are files but no image, use the directory of the first file
+                            Path::new(&file_paths[0]).parent().map(|p| p.to_path_buf())
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    };
+
+                    // Open the directory if one was found
+                    if let Some(dir) = directory_to_open {
+                        log::info!("Opening directory: {}", dir.display());
+                        if let Err(e) = std::process::Command::new("explorer")
+                            .arg(dir.to_str().unwrap_or(""))
+                            .spawn() {
+                            log::error!("Failed to open directory: {}", e);
                         }
                     }
                 }

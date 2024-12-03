@@ -11,6 +11,8 @@ pub struct NotificationRequest {
     #[serde(default)]
     pub image_path: Option<String>,
     #[serde(default)]
+    pub file_paths: Option<Vec<String>>,
+    #[serde(default)]
     pub callback_command: Option<String>,
 }
 
@@ -18,6 +20,8 @@ pub struct NotificationRequest {
 pub struct NotificationData {
     pub callback_command: Option<String>,
     pub message: String,
+    pub image_path: Option<String>,
+    pub file_paths: Option<Vec<String>>,
 }
 
 pub trait NotificationType {

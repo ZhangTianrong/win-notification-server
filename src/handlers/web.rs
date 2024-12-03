@@ -24,6 +24,7 @@ pub async fn send_notification(
     let mut title = String::new();
     let mut message = String::new();
     let mut image_path = None;
+    let mut file_paths = Vec::new();
 
     // Create temporary directory for this notification in system temp dir
     let notification_id = Uuid::new_v4();
@@ -125,6 +126,34 @@ pub async fn send_notification(
                     image_path = Some(file_path.to_string_lossy().into_owned());
                 }
             },
+            "files" => {
+                if let Some(filename) = content_disposition.get_filename() {
+                    let file_path = temp_dir.join(filename);
+                    
+                    let mut file = match fs::File::create(&file_path) {
+                        Ok(file) => file,
+                        Err(e) => {
+                            log::error!("Failed to create file: {}", e);
+                            return Ok(HttpResponse::InternalServerError().body("Failed to create file"));
+                        }
+                    };
+
+                    while let Some(chunk) = match field.try_next().await {
+                        Ok(Some(chunk)) => Some(chunk),
+                        Ok(None) => None,
+                        Err(e) => {
+                            log::error!("Error reading file data: {}", e);
+                            return Ok(HttpResponse::BadRequest().body("Invalid file data"));
+                        }
+                    } {
+                        if let Err(e) = file.write_all(&chunk) {
+                            log::error!("Failed to write file chunk: {}", e);
+                            return Ok(HttpResponse::InternalServerError().body("Failed to save file"));
+                        }
+                    }
+                    file_paths.push(file_path.to_string_lossy().into_owned());
+                }
+            },
             _ => {
                 log::warn!("Unexpected field: {}", name);
             }
@@ -135,6 +164,7 @@ pub async fn send_notification(
         title,
         message,
         image_path,
+        file_paths: if file_paths.is_empty() { None } else { Some(file_paths) },
         xml_payload: None,
         callback_command: None,
     };
