@@ -12,6 +12,7 @@ A Rust-based REST API server that enables sending Windows 11 notifications progr
 - Automatic Windows notification registration
 - Configurable port and bind address
 - Basic authentication for non-localhost requests
+- Default action of copying the text to clipboard and revealing the attachments in explorer
 
 ## Setup
 
@@ -33,27 +34,19 @@ The server supports the following command line arguments:
 USAGE:
     notification_server [OPTIONS]
 
-OPTIONS:
-    -p, --port <PORT>         Port to listen on [default: 3000]
-    -b, --bind <ADDRESS>      Bind address [default: 0.0.0.0]
-    -u, --username <USER>     Username for basic authentication
-    -w, --password <PASS>     Password for basic authentication
-    -h, --help               Print help information
-    -V, --version            Print version information
+Options:
+    -a, --address <ADDRESS>     Address to listen on [default: 0.0.0.0]
+    -p, --port <PORT>           Port to listen on [default: 3000]
+    -u, --username <USERNAME>   Optional username for basic authentication
+    -w, --password <PASSWORD>   Optional password for basic authentication
+    -h, --help                  Print help
+    -V, --version               Print version
 ```
 
 Example with custom port and authentication:
 ```bash
-cargo run --release -- --port 8080 --bind 127.0.0.1 --username admin --password secret
+cargo run --release -- --port 8080 --bind 0.0.0.0 --username admin --password secret
 ```
-
-## Security
-
-- By default, only localhost requests are allowed without authentication
-- For non-localhost requests, basic authentication can be enabled using the --username and --password flags
-- If authentication credentials are not provided, only localhost requests will be accepted
-- Both username and password must be provided to enable authentication
-- HTTPS is recommended for production use when accepting non-localhost requests
 
 ## API Endpoints
 
@@ -64,6 +57,7 @@ Send a notification using multipart form data with the following fields:
 - `title`: The notification title (required)
 - `message`: The notification message (required)
 - `image`: An image file to display in the notification (optional)
+- `image_position`: Wether to display the image as a banner or a logo (optional)
 - `files`: One or more file attachments (optional, can be specified multiple times)
 - `callback_command`: Command to execute when the notification is clicked (optional)
 
@@ -109,7 +103,7 @@ curl -X POST http://localhost:3000/notify \
 curl -X POST http://localhost:3000/notify \
   -F "title=Command Notification" \
   -F "message=Click to execute command" \
-  -F "callback_command=explorer \"https://example.com\""
+  -F "callback_command=start https://example.com"
 ```
 
 ## Error Handling
