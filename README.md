@@ -50,7 +50,11 @@ cargo run --release -- --port 8080 --bind 0.0.0.0 --username admin --password se
 
 ### iOS Shortcut
 
-The server can also be accessed via [iOS shortcut](https://www.icloud.com/shortcuts/fcdb2058fb2e45ee89a2dfebc71140e5). You will need to change the URL and authentication information to match with your own settings to use it.
+The server can also be accessed via [iOS shortcut](https://www.icloud.com/shortcuts/fcdb2058fb2e45ee89a2dfebc71140e5). You will need to change the URL and authentication information to match with your own settings to use it. The token base64 is generated with
+
+```powershell
+[Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("admin:secret"))
+```
 
 ## API Endpoints
 
