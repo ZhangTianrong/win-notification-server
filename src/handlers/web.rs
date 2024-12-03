@@ -31,6 +31,7 @@ async fn handle_multipart(
     let mut message = String::new();
     let mut image_path = None;
     let mut file_paths = Vec::new();
+    let mut callback_command = None;
 
     while let Ok(Some(mut field)) = payload.try_next().await {
         let content_disposition = field.content_disposition();
@@ -58,6 +59,18 @@ async fn handle_multipart(
                         log::error!("Invalid UTF-8 in message: {}", e);
                         actix_web::error::ErrorBadRequest("Invalid message encoding")
                     })?;
+            },
+            "callback_command" => {
+                let mut content = Vec::new();
+                while let Ok(Some(chunk)) = field.try_next().await {
+                    content.extend_from_slice(&chunk);
+                }
+                let cmd = String::from_utf8(content)
+                    .map_err(|e| {
+                        log::error!("Invalid UTF-8 in callback_command: {}", e);
+                        actix_web::error::ErrorBadRequest("Invalid callback_command encoding")
+                    })?;
+                callback_command = Some(cmd);
             },
             "image" => {
                 if let Some(filename) = content_disposition.get_filename() {
@@ -118,7 +131,7 @@ async fn handle_multipart(
         notification_type: Default::default(),
         image_path,
         file_paths: if file_paths.is_empty() { None } else { Some(file_paths) },
-        callback_command: None,
+        callback_command,
     })
 }
 

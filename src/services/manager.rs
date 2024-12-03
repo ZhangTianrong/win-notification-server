@@ -105,19 +105,23 @@ impl NotificationManager {
             
             if let Ok(notifications_guard) = notifications.lock() {
                 if let Some(data) = notifications_guard.get(&tag) {
-                    // Handle callback command if present
+                    // Handle callback command if present and not empty
                     if let Some(cmd) = &data.callback_command {
-                        log::info!("Executing callback command for click: {}", cmd);
-                        if let Err(e) = std::process::Command::new("cmd")
-                            .args(&["/C", cmd])
-                            .spawn() {
-                            log::error!("Failed to execute click callback: {}", e);
+                        if !cmd.trim().is_empty() {
+                            log::info!("Executing callback command for click: {}", cmd);
+                            if let Err(e) = std::process::Command::new("cmd")
+                                .args(&["/C", cmd])
+                                .spawn() {
+                                log::error!("Failed to execute click callback: {}", e);
+                            }
+                            return Ok(());
                         }
-                    } else {
-                        // Copy message to clipboard if no callback command
-                        if let Err(e) = ClipboardService::set_text(&data.message) {
-                            log::error!("Failed to copy text to clipboard: {}", e);
-                        }
+                    }
+                    
+                    // Execute default operations if no callback command or if it's empty
+                    // Copy message to clipboard
+                    if let Err(e) = ClipboardService::set_text(&data.message) {
+                        log::error!("Failed to copy text to clipboard: {}", e);
                     }
 
                     // Determine which directory to open
