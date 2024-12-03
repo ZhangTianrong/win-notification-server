@@ -13,14 +13,17 @@ use bytes::BytesMut;
 use futures_util::StreamExt;
 
 use crate::services::NotificationManager;
-use crate::notifications::NotificationRequest;
+use crate::notifications::{NotificationRequest, ImagePosition};
 
 const NOTIFICATION_ASSETS_DIR: &str = "notification_server_assets";
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct FormData {
     title: Option<String>,
     message: Option<String>,
+    #[serde(default)]
+    image_position: Option<ImagePosition>,
 }
 
 async fn handle_multipart(
@@ -30,6 +33,7 @@ async fn handle_multipart(
     let mut title = String::new();
     let mut message = String::new();
     let mut image_path = None;
+    let mut image_position = None;
     let mut file_paths = Vec::new();
     let mut callback_command = None;
 
@@ -59,6 +63,22 @@ async fn handle_multipart(
                         log::error!("Invalid UTF-8 in message: {}", e);
                         actix_web::error::ErrorBadRequest("Invalid message encoding")
                     })?;
+            },
+            "image_position" => {
+                let mut content = Vec::new();
+                while let Ok(Some(chunk)) = field.try_next().await {
+                    content.extend_from_slice(&chunk);
+                }
+                let pos = String::from_utf8(content)
+                    .map_err(|e| {
+                        log::error!("Invalid UTF-8 in image_position: {}", e);
+                        actix_web::error::ErrorBadRequest("Invalid image_position encoding")
+                    })?;
+                match pos.to_lowercase().as_str() {
+                    "hero" => image_position = Some(ImagePosition::Hero),
+                    "logo" => image_position = Some(ImagePosition::AppLogoOverride),
+                    _ => log::warn!("Invalid image position value: {}", pos),
+                }
             },
             "callback_command" => {
                 let mut content = Vec::new();
@@ -130,6 +150,7 @@ async fn handle_multipart(
         message,
         notification_type: Default::default(),
         image_path,
+        image_position,
         file_paths: if file_paths.is_empty() { None } else { Some(file_paths) },
         callback_command,
     })
@@ -178,6 +199,7 @@ pub async fn send_notification(
             message: form_data.message.unwrap_or_default(),
             notification_type: Default::default(),
             image_path: None,
+            image_position: form_data.image_position,
             file_paths: None,
             callback_command: None,
         }

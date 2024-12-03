@@ -5,12 +5,13 @@ use windows::{
     Data::Xml::Dom::*,
 };
 use std::path::Path;
-use super::types::{NotificationType, NotificationData};
+use super::types::{NotificationType, NotificationData, ImagePosition};
 
 pub struct BasicNotification {
     pub title: String,
     pub message: String,
     pub image_path: Option<String>,
+    pub image_position: Option<ImagePosition>,
     pub file_paths: Option<Vec<String>>,
     pub callback_command: Option<String>,
 }
@@ -37,8 +38,13 @@ impl NotificationType for BasicNotification {
                 return Err(anyhow::anyhow!("Image file not found"));
             }
 
-            format!("<image placement=\"hero\" src=\"{}\" />", 
-                path.to_string_lossy())
+            let placement = match self.image_position.as_ref().unwrap_or(&ImagePosition::Hero) {
+                ImagePosition::Hero => "hero",
+                ImagePosition::AppLogoOverride => "appLogoOverride",
+            };
+
+            format!("<image placement=\"{}\" src=\"{}\" />", 
+                placement, path.to_string_lossy())
         } else {
             String::new()
         };
@@ -84,6 +90,7 @@ impl From<super::types::NotificationRequest> for BasicNotification {
             title: request.title,
             message: request.message,
             image_path: request.image_path,
+            image_position: request.image_position,
             file_paths: request.file_paths,
             callback_command: request.callback_command,
         }

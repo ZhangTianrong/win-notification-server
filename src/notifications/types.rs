@@ -9,6 +9,19 @@ pub enum NotificationKind {
     // Future notification types can be added here
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub enum ImagePosition {
+    Hero,
+    AppLogoOverride,
+}
+
+impl Default for ImagePosition {
+    fn default() -> Self {
+        ImagePosition::Hero
+    }
+}
+
 impl Default for NotificationKind {
     fn default() -> Self {
         NotificationKind::Basic
@@ -23,6 +36,8 @@ pub struct NotificationRequest {
     pub notification_type: NotificationKind,
     #[serde(default)]
     pub image_path: Option<String>,
+    #[serde(default)]
+    pub image_position: Option<ImagePosition>,
     #[serde(default)]
     pub file_paths: Option<Vec<String>>,
     #[serde(default)]
