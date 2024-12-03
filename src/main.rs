@@ -10,6 +10,7 @@ mod utils;
 
 use services::NotificationManager;
 use utils::constants::{APP_ID, APP_DISPLAY_NAME};
+use utils::auth::{AuthConfig, AuthMiddleware};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about = "Notification server for sending Windows notifications")]
@@ -21,6 +22,14 @@ struct Args {
     /// Port to listen on
     #[arg(short, long, default_value_t = 3000)]
     port: u16,
+
+    /// Optional username for basic authentication
+    #[arg(short, long)]
+    username: Option<String>,
+
+    /// Optional password for basic authentication
+    #[arg(short = 'w', long)]
+    password: Option<String>,
 }
 
 #[actix_web::main]
@@ -38,17 +47,32 @@ async fn main() -> Result<()> {
     log::info!("Notification manager initialized successfully");
 
     let bind_addr = format!("{}:{}", args.address, args.port);
-    println!("Starting notification server on http://{}", bind_addr);
+    let is_localhost = args.address == "127.0.0.1" || args.address == "localhost" || args.address == "::1";
     
-    HttpServer::new(move || {
+    // Initialize auth config
+    let auth_config = AuthConfig::new(args.username, args.password);
+    if auth_config.is_auth_required() {
+        println!("Basic authentication enabled");
+    }
+    
+    let mut server = HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(manager.clone()))
+            .wrap(AuthMiddleware::new(auth_config.clone()))
             .route("/notify", web::post().to(handlers::send_notification))
     })
-    .bind(&bind_addr)?
-    .workers(4)
-    .run()
-    .await?;
+    .bind(&bind_addr)?;
+
+    // Only bind to localhost if we're not already bound to it
+    if !is_localhost {
+        let localhost_addr = format!("127.0.0.1:{}", args.port);
+        server = server.bind(&localhost_addr)?;
+        println!("Starting notification server on http://{} and http://{}", bind_addr, localhost_addr);
+    } else {
+        println!("Starting notification server on http://{}", bind_addr);
+    }
+    
+    server.workers(4).run().await?;
 
     Ok(())
 }
